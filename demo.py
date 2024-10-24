@@ -45,11 +45,11 @@ def main():
     save_path = "output/{}/silence.mp4".format(task_id)
     videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
     for frame in tqdm.tqdm(mouth_frame):
-        frame = renderModel.interface(frame)
+        out_frame = renderModel.interface(frame)
         # cv2.imshow("s", frame)
         # cv2.waitKey(40)
 
-        videoWriter.write(frame)
+        videoWriter.write(out_frame)
 
     videoWriter.release()
     val_video = "../output/{}.mp4".format(task_id)

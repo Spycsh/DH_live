@@ -1,3 +1,4 @@
+import time
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -270,17 +271,27 @@ class DINet_five_Ref(nn.Module):
         ## use AdaAT do spatial deformation on reference feature maps
         self.ref_trans_feature0 = self.appearance_conv_list[0](self.ref_in_feature)
     def interface(self, source_img, source_prompt):
+        """Add batch inference."""
+        bs = source_img.size(0)
         self.source_img = torch.cat([source_img, source_prompt], dim=1)
         ## source image encoder
         source_in_feature = self.source_in_conv(self.source_img)
         # print(source_in_feature.size(), source_in_feature)
 
         ## alignment encoder
+        ## FIXME
+        ## MAKE ref_in_feaure repeat to batch_size of source_in_feature
+        self.ref_in_feature = self.ref_in_feature.repeat((bs,1,1,1))
         img_para = self.trans_conv(torch.cat([source_in_feature,self.ref_in_feature],1))
         img_para = self.global_avg2d(img_para).squeeze(3).squeeze(2)
         # print(img_para.size(), img_para)
         ## concat alignment feature and audio feature
         trans_para = img_para
+
+        ## FIXME
+        ## MAKE ref_trans_feature0 repeat to batch_size of source_in_feature
+        self.ref_trans_feature0 = self.ref_trans_feature0.repeat((bs,1,1,1))
+
 
         ref_trans_feature = self.adaAT(self.ref_trans_feature0, trans_para)
         ref_trans_feature = self.appearance_conv_list[1](ref_trans_feature)

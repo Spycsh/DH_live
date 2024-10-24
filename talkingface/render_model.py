@@ -33,8 +33,8 @@ class RenderModel:
         n_ref = 5
         source_channel = 6
         ref_channel = n_ref * 6
-        self.__net = DINet(source_channel, ref_channel).cuda()
-        checkpoint = torch.load(ckpt_path)
+        self.__net = DINet(source_channel, ref_channel).to(device)
+        checkpoint = torch.load(ckpt_path, map_location=torch.device(device))
         self.__net.load_state_dict(checkpoint)
         self.__net.eval()
 
@@ -45,7 +45,7 @@ class RenderModel:
         self.__pts_driven, self.__mat_list,self.__pts_normalized_list, self.__face_mask_pts, self.__ref_img, self.__cap_input = \
             prepare_video_data(video_path, Path_pkl, ref_img_index_list)
 
-        ref_tensor = torch.from_numpy(self.__ref_img / 255.).float().permute(2, 0, 1).unsqueeze(0).cuda()
+        ref_tensor = torch.from_numpy(self.__ref_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
         self.__net.ref_input(ref_tensor)
 
         x_min, x_max = np.min(self.__pts_normalized_list[:, INDEX_LIPS_OUTER, 0]), np.max(self.__pts_normalized_list[:, INDEX_LIPS_OUTER, 0])
@@ -74,6 +74,8 @@ class RenderModel:
 
 
     def interface(self, mouth_frame):
+        # with torch.no_grad():
+        #     with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16, cache_enabled=True):
         vid_frame_count = self.__cap_input.get(cv2.CAP_PROP_FRAME_COUNT)
         if self.frame_index % vid_frame_count == 0:
             self.__cap_input.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 设置要获取的帧号
@@ -91,10 +93,11 @@ class RenderModel:
                                                                     self.__mouth_coords_array)
 
         # tensor
-        source_tensor = torch.from_numpy(source_img / 255.).float().permute(2, 0, 1).unsqueeze(0).cuda()
-        target_tensor = torch.from_numpy(target_img / 255.).float().permute(2, 0, 1).unsqueeze(0).cuda()
+        source_tensor = torch.from_numpy(source_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
+        target_tensor = torch.from_numpy(target_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
 
         source_tensor, source_prompt_tensor = source_tensor[:, :3], source_tensor[:, 3:]
+        # with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16, cache_enabled=True):
         fake_out = self.__net.interface(source_tensor, source_prompt_tensor)
 
         image_numpy = fake_out.detach().squeeze(0).cpu().float().numpy()
