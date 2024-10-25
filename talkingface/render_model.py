@@ -71,7 +71,79 @@ class RenderModel:
         coords_array = coords_array*np.array([x_max - x_min, y_max - y_min, z_max - z_min, 1]) + np.array([x_min, y_min, z_min, 0])
         self.__mouth_coords_array = coords_array.reshape(-1, 4).transpose(1, 0)
 
+    def interface_batch(self, mouth_frames):
+        # mouth_frames (451, 15, 30, 3)
 
+        source_tensors = None
+        source_prompt_tensors = None
+        crop_coords_lst = []
+        frames = []
+        target_imgs = []
+
+        for idx, mouth_frame in enumerate(mouth_frames):
+            # print(cv2.CAP_PROP_FRAME_COUNT) # 7
+
+            vid_frame_count = self.__cap_input.get(cv2.CAP_PROP_FRAME_COUNT)    # 7
+            if self.frame_index % vid_frame_count == 0:
+                self.__cap_input.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 设置要获取的帧号
+            ret, frame = self.__cap_input.read()  # 按帧读取视频
+            frames.append(frame)
+            # print(self.frame_index)
+
+            epoch = self.frame_index // len(self.__mat_list) # // 758/7
+            if epoch % 2 == 0:
+                new_index = self.frame_index % len(self.__mat_list)
+            else:
+                new_index = -1 - self.frame_index % len(self.__mat_list)
+
+            # print(self.__face_mask_pts.shape, "ssssssss")
+            source_img, target_img, crop_coords = generate_input_pixels(frame, self.__pts_driven[new_index], self.__mat_list[new_index],
+                                                                        mouth_frame, self.__face_mask_pts[new_index],
+                                                                        self.__mouth_coords_array)
+
+            crop_coords_lst.append(crop_coords)
+            target_imgs.append(target_img)
+
+            # tensor
+            source_tensor = torch.from_numpy(source_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
+            target_tensor = torch.from_numpy(target_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
+            source_tensor, source_prompt_tensor = source_tensor[:, :3], source_tensor[:, 3:]
+            if idx == 0:
+                source_tensors, source_prompt_tensors = source_tensor, source_prompt_tensor
+            else:
+                source_tensors = torch.cat([source_tensors, source_tensor])
+                source_prompt_tensors = torch.cat([source_prompt_tensors, source_prompt_tensor])
+
+            self.frame_index += 1
+
+        fake_out = self.__net.interface(source_tensors, source_prompt_tensors)
+
+        # image_numpy = fake_out.detach().squeeze(0).cpu().float().numpy()
+        # image_numpy = np.transpose(image_numpy, (1, 2, 0)) * 255.0
+        image_numpys = fake_out.detach().cpu().float().numpy()
+        image_numpys = np.transpose(image_numpys, (0, 2, 3, 1)) * 255.0
+        image_numpys = image_numpys.clip(0, 255)
+        image_numpys = image_numpys.astype(np.uint8)
+
+        result = []
+
+        for idx, image_numpy in enumerate(image_numpys):
+            # print(image_numpy)
+            target_img = target_imgs[idx]
+
+            image_numpy = target_img * face_mask + image_numpy * (1 - face_mask)
+
+            img_bg = frames[idx]
+            x_min, y_min, x_max, y_max = crop_coords_lst[idx]
+
+            img_face = cv2.resize(image_numpy, (x_max - x_min, y_max - y_min))
+            img_bg[y_min:y_max, x_min:x_max] = img_face
+            # self.frame_index += 1
+            # return img_bg
+            result.append(img_bg)
+
+        # result 451 * (1920, 1080, 3)
+        return result
 
     def interface(self, mouth_frame):
         # with torch.no_grad():

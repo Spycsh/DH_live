@@ -44,6 +44,7 @@ def main():
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     save_path = "output/{}/silence.mp4".format(task_id)
     videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
+    S = time.time()
     for frame in tqdm.tqdm(mouth_frame):
         out_frame = renderModel.interface(frame)
         # cv2.imshow("s", frame)
@@ -52,6 +53,8 @@ def main():
         videoWriter.write(out_frame)
 
     videoWriter.release()
+    E = time.time()
+    print(f"inference time: {E-S}")
     val_video = "../output/{}.mp4".format(task_id)
     os.system(
         "ffmpeg -i {} -i {} -c:v libx264 -pix_fmt yuv420p -loglevel quiet {}".format(save_path, wavpath, output_video_name))

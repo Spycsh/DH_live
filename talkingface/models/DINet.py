@@ -281,8 +281,8 @@ class DINet_five_Ref(nn.Module):
         ## alignment encoder
         ## FIXME
         ## MAKE ref_in_feaure repeat to batch_size of source_in_feature
-        self.ref_in_feature = self.ref_in_feature.repeat((bs,1,1,1))
-        img_para = self.trans_conv(torch.cat([source_in_feature,self.ref_in_feature],1))
+        tmp_ref_in_feature = self.ref_in_feature.repeat((bs,1,1,1))
+        img_para = self.trans_conv(torch.cat([source_in_feature,tmp_ref_in_feature],1))
         img_para = self.global_avg2d(img_para).squeeze(3).squeeze(2)
         # print(img_para.size(), img_para)
         ## concat alignment feature and audio feature
@@ -290,10 +290,11 @@ class DINet_five_Ref(nn.Module):
 
         ## FIXME
         ## MAKE ref_trans_feature0 repeat to batch_size of source_in_feature
-        self.ref_trans_feature0 = self.ref_trans_feature0.repeat((bs,1,1,1))
+        tmp_ref_trans_feature0 = self.ref_trans_feature0.repeat((bs,1,1,1))
+        # self.ref_trans_feature0 = self.ref_trans_feature0.repeat((bs,1,1,1))
 
 
-        ref_trans_feature = self.adaAT(self.ref_trans_feature0, trans_para)
+        ref_trans_feature = self.adaAT(tmp_ref_trans_feature0, trans_para)
         ref_trans_feature = self.appearance_conv_list[1](ref_trans_feature)
         # print(ref_trans_feature.size(), ref_trans_feature)
         ## feature decoder
