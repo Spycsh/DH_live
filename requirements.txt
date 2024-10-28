@@ -6,3 +6,5 @@ scikit-learn
 python-multipart
 fastapi
 uvicorn
+pydub
+torch
