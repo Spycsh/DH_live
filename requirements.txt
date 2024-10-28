@@ -3,3 +3,6 @@ mediapipe
 sounddevice
 tqdm
 scikit-learn
+python-multipart
+fastapi
+uvicorn
