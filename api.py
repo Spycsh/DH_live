@@ -66,10 +66,10 @@ def dh_convert(wavpath, use_batching=False):
     shutil.rmtree("output/{}".format(task_id))
     return output_video_path
 
-def generate_video(video_path):
-    with open(video_path, mode="rb") as file_like:
+def generate_video(output_video_path):
+    with open(output_video_path, mode="rb") as file_like:
         yield from file_like
-    os.remove(video_path)
+    os.remove(output_video_path)
 
 
 @app.get("/v1/health")
@@ -108,7 +108,6 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--video_path", type=str, default="video_data/test")
-    parser.add_argument("--zh", help="data_zh", action="store_true")
     parser.add_argument("--use_batching", help="use batching optimization will speedup inference on specific hardwares", action="store_true")
     args = parser.parse_args()
 
