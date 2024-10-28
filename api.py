@@ -8,10 +8,9 @@ from talkingface.audio_model import AudioModel
 from talkingface.render_model import RenderModel
 from starlette.middleware.cors import CORSMiddleware
 import argparse
-import base64
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import Response, StreamingResponse
 from fastapi import File, UploadFile, HTTPException
 
@@ -68,9 +67,8 @@ def dh_convert(wavpath, use_batching=False):
     return output_video_path
 
 def generate_video(video_path):
-    with open(video_path, mode="rb") as file_like:  # 
-        yield from file_like  # 
-    
+    with open(video_path, mode="rb") as file_like:
+        yield from file_like
     os.remove(video_path)
 
 
@@ -96,7 +94,7 @@ async def digital_human(file: UploadFile = File(...)):
     audio = AudioSegment.from_file(file_name)
     audio = audio.set_frame_rate(16000)
     audio.export(f"{file_name}", format="wav")
-    
+
     output_video_path = dh_convert(file_name, use_batching=use_batching)
     os.remove(file_name)
 
@@ -127,6 +125,5 @@ if __name__ == "__main__":
     pkl_path = "{}/keypoint_rotate.pkl".format(video_path)
     video_path = "{}/circle.mp4".format(video_path)
     renderModel.reset_charactor(video_path, pkl_path)
-    
 
     uvicorn.run(app, host=args.host, port=args.port)
