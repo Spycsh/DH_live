@@ -8,9 +8,9 @@ from talkingface.audio_model import AudioModel
 from talkingface.render_model import RenderModel
 from starlette.middleware.cors import CORSMiddleware
 import argparse
-
+import base64
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import Response, StreamingResponse
 from fastapi import File, UploadFile, HTTPException
 
@@ -99,6 +99,36 @@ async def digital_human(file: UploadFile = File(...)):
     os.remove(file_name)
 
     return StreamingResponse(generate_video(output_video_path), media_type="video/mp4")
+
+@app.post("/v1/digital_human_flow")
+async def digital_human(request: Request):
+    """Input: dict, Output: Streaming video response."""
+    print("Digital human inference begin.")
+
+    uid = str(uuid.uuid4())
+    file_name = uid + ".wav"
+    request_dict = await request.json()
+    audio_b64_str = request_dict.pop("audio")
+    with open(file_name, "wb") as f:
+        f.write(base64.b64decode(audio_b64_str))
+
+    audio = AudioSegment.from_file(file_name)
+    audio = audio.set_frame_rate(16000)
+    audio.export(f"{file_name}", format="wav")
+
+
+    try:
+        output_video_path = dh_convert(file_name, use_batching=use_batching)
+    except RuntimeError as e:
+        print(e)
+        os.remove(file_name)
+        raise HTTPException(status_code=500, detail="convert failure! check your input audio!")
+    finally:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+
+    return StreamingResponse(generate_video(output_video_path), media_type="video/mp4")
+
 
 # @app.post("/v1/digital_human/change_refer")
 # async def change_refer(file: UploadFile = File(...)):
