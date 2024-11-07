@@ -8,6 +8,8 @@ import shutil
 import sys
 from talkingface.audio_model import AudioModel
 from talkingface.render_model import RenderModel
+import habana_frameworks.torch.core as htcore
+import habana_frameworks.torch.gpu_migration
 
 def main():
     # 检查命令行参数的数量
@@ -33,28 +35,33 @@ def main():
     renderModel.reset_charactor(video_path, pkl_path)
 
     # wavpath = "video_data/audio0.wav"
-    wavpath = audio_path
-    mouth_frame = audioModel.interface_wav(wavpath)
-    cap_input = cv2.VideoCapture(video_path)
-    vid_width = cap_input.get(cv2.CAP_PROP_FRAME_WIDTH)  # 宽度
-    vid_height = cap_input.get(cv2.CAP_PROP_FRAME_HEIGHT)  # 高度
-    cap_input.release()
-    task_id = str(uuid.uuid1())
-    os.makedirs("output/{}".format(task_id), exist_ok=True)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    save_path = "output/{}/silence.mp4".format(task_id)
-    videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
-    S = time.time()
-    for frame in tqdm.tqdm(mouth_frame):
-        out_frame = renderModel.interface(frame)
-        # cv2.imshow("s", frame)
-        # cv2.waitKey(40)
+    for wavpath in [audio_path, "video_data/audio0.wav", "video_data/audio1.wav"]:
+        #wavpath = audio_path
+        mouth_frame = audioModel.interface_wav(wavpath)
+        cap_input = cv2.VideoCapture(video_path)
+        vid_width = cap_input.get(cv2.CAP_PROP_FRAME_WIDTH)  # 宽度
+        vid_height = cap_input.get(cv2.CAP_PROP_FRAME_HEIGHT)  # 高度
+        cap_input.release()
+        task_id = str(uuid.uuid1())
+        os.makedirs("output/{}".format(task_id), exist_ok=True)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        save_path = "output/{}/silence.mp4".format(task_id)
+        videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
+        S = time.time()
+        for frame in tqdm.tqdm(mouth_frame):
+            out_frame = renderModel.interface(frame)
+            #breakpoint()
+            ret, jpeg_frame = cv2.imencode('.jpg', out_frame)
+            frame_bytes = jpeg_frame.tobytes()
+            # cv2.imshow("s", frame)
+            # cv2.waitKey(40)
 
-        videoWriter.write(out_frame)
+            #videoWriter.write(out_frame)
 
-    videoWriter.release()
-    E = time.time()
-    print(f"inference time: {E-S}")
+        videoWriter.release()
+        E = time.time()
+        print(f"inference time: {E-S}")
+
     val_video = "../output/{}.mp4".format(task_id)
     os.system(
         "ffmpeg -i {} -i {} -c:v libx264 -pix_fmt yuv420p -loglevel quiet {}".format(save_path, wavpath, output_video_name))

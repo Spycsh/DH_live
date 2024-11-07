@@ -205,9 +205,11 @@ class AdaAT(nn.Module):
         grid_xy = grid_xy.unsqueeze(0).repeat(batch, 1, 1, 1, 1)
         grid_z = grid_z.unsqueeze(0).repeat(batch, 1, 1, 1)
         scale = scale.unsqueeze(2).unsqueeze(3).repeat(1, 1, h, w, 1)
-        rotation_matrix = rotation_matrix.unsqueeze(2).unsqueeze(3).repeat(1, 1, h, w, 1, 1)
+        #rotation_matrix = rotation_matrix.unsqueeze(2).unsqueeze(3).repeat(1, 1, h, w, 1, 1)
+        rotation_matrix = rotation_matrix.unsqueeze(2).unsqueeze(3).squeeze(0).repeat(1, h, w, 1, 1)
         translation = translation.unsqueeze(2).unsqueeze(3).repeat(1, 1, h, w, 1)
-        trans_grid = torch.matmul(rotation_matrix, grid_xy.unsqueeze(-1)).squeeze(-1) * scale + translation
+        #trans_grid = torch.matmul(rotation_matrix, grid_xy.unsqueeze(-1)).squeeze(-1) * scale + translation
+        trans_grid = torch.matmul(rotation_matrix, grid_xy.squeeze(0).unsqueeze(-1)).squeeze(-1).unsqueeze(0) * scale + translation
         full_grid = torch.cat([trans_grid, grid_z.unsqueeze(-1)], -1)
         trans_feature = F.grid_sample(feature_map.unsqueeze(1), full_grid).squeeze(1)
         return trans_feature

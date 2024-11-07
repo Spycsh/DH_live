@@ -7,10 +7,11 @@ from talkingface.run_utils import smooth_array, video_pts_process
 from talkingface.run_utils import mouth_replace, prepare_video_data
 from talkingface.utils import generate_face_mask, INDEX_LIPS_OUTER
 from talkingface.data.few_shot_dataset import select_ref_index,get_ref_images_fromVideo,generate_input, generate_input_pixels
-device = "cuda" if torch.cuda.is_available() else "cpu"
+#device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "hpu"
 import pickle
 import cv2
-
+import habana_frameworks.torch.core as htcore
 
 face_mask = generate_face_mask()
 
@@ -33,9 +34,14 @@ class RenderModel:
         n_ref = 5
         source_channel = 6
         ref_channel = n_ref * 6
-        self.__net = DINet(source_channel, ref_channel).to(device)
-        checkpoint = torch.load(ckpt_path, map_location=torch.device(device))
+        self.__net = DINet(source_channel, ref_channel)
+        checkpoint = torch.load(ckpt_path,map_location=torch.device('cpu'))
         self.__net.load_state_dict(checkpoint)
+        self.__net = self.__net.to(device)
+        from habana_frameworks.torch.hpu import wrap_in_hpu_graph
+        self.__net = wrap_in_hpu_graph(self.__net)
+        # export PT_HPU_LAZY_MODE=0 before using torch.compile
+        #self.__net = torch.compile(self.__net, backend="hpu_backend", options={"keep_input_mutations": True})
         self.__net.eval()
 
     def reset_charactor(self, video_path, Path_pkl, ref_img_index_list = None):
@@ -169,7 +175,8 @@ class RenderModel:
         target_tensor = torch.from_numpy(target_img / 255.).float().permute(2, 0, 1).unsqueeze(0).to(device)
 
         source_tensor, source_prompt_tensor = source_tensor[:, :3], source_tensor[:, 3:]
-        # with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16, cache_enabled=True):
+        #with torch.cpu.amp.autocast(enabled=True, dtype=torch.bfloat16, cache_enabled=True):
+        #with torch.autocast(device_type="hpu", dtype=torch.bfloat16):
         fake_out = self.__net.interface(source_tensor, source_prompt_tensor)
 
         image_numpy = fake_out.detach().squeeze(0).cpu().float().numpy()
