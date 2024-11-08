@@ -35,7 +35,7 @@ def main():
     renderModel.reset_charactor(video_path, pkl_path)
 
     # wavpath = "video_data/audio0.wav"
-    for wavpath in [audio_path, "video_data/audio0.wav", "video_data/audio1.wav"]:
+    for wavpath in ["video_data/audio0.wav", "video_data/audio1.wav", audio_path]:
         #wavpath = audio_path
         mouth_frame = audioModel.interface_wav(wavpath)
         cap_input = cv2.VideoCapture(video_path)
@@ -50,13 +50,12 @@ def main():
         S = time.time()
         for frame in tqdm.tqdm(mouth_frame):
             out_frame = renderModel.interface(frame)
-            #breakpoint()
-            ret, jpeg_frame = cv2.imencode('.jpg', out_frame)
-            frame_bytes = jpeg_frame.tobytes()
+            #ret, jpeg_frame = cv2.imencode('.jpg', out_frame)
+            #frame_bytes = jpeg_frame.tobytes()
             # cv2.imshow("s", frame)
             # cv2.waitKey(40)
 
-            #videoWriter.write(out_frame)
+            videoWriter.write(out_frame)
 
         videoWriter.release()
         E = time.time()

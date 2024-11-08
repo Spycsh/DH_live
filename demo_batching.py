@@ -8,6 +8,9 @@ import shutil
 import sys
 from talkingface.audio_model import AudioModel
 from talkingface.render_model import RenderModel
+import habana_frameworks.torch.core as htcore
+import habana_frameworks.torch.gpu_migration
+
 
 def main():
     # 检查命令行参数的数量
@@ -33,39 +36,40 @@ def main():
     renderModel.reset_charactor(video_path, pkl_path)
 
     # wavpath = "video_data/audio0.wav"
-    wavpath = audio_path
-    mouth_frame = audioModel.interface_wav(wavpath)
-    cap_input = cv2.VideoCapture(video_path)
-    vid_width = cap_input.get(cv2.CAP_PROP_FRAME_WIDTH)  # 宽度
-    vid_height = cap_input.get(cv2.CAP_PROP_FRAME_HEIGHT)  # 高度
-    cap_input.release()
-    task_id = str(uuid.uuid1())
-    os.makedirs("output/{}".format(task_id), exist_ok=True)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    save_path = "output/{}/silence.mp4".format(task_id)
-    videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
-    # for frame in tqdm.tqdm(mouth_frame):
-    #     out_frame = renderModel.interface(frame)
-    #     # cv2.imshow("s", frame)
-    #     # cv2.waitKey(40)
+    for wavpath in [audio_path, "video_data/audio0.wav", "video_data/audio1.wav"]:
+        #wavpath = audio_path
+        mouth_frame = audioModel.interface_wav(wavpath)
+        cap_input = cv2.VideoCapture(video_path)
+        vid_width = cap_input.get(cv2.CAP_PROP_FRAME_WIDTH)  # 宽度
+        vid_height = cap_input.get(cv2.CAP_PROP_FRAME_HEIGHT)  # 高度
+        cap_input.release()
+        task_id = str(uuid.uuid1())
+        os.makedirs("output/{}".format(task_id), exist_ok=True)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        save_path = "output/{}/silence.mp4".format(task_id)
+        videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
+        # for frame in tqdm.tqdm(mouth_frame):
+        #     out_frame = renderModel.interface(frame)
+        #     # cv2.imshow("s", frame)
+        #     # cv2.waitKey(40)
 
-    #     videoWriter.write(out_frame)
-    S = time.time()
+        #     videoWriter.write(out_frame)
+        S = time.time()
 
-    total_frame_num = len(mouth_frame)
-    MAX_BATCH_SIZE = 32    # suggest to set <=64
-    total_run = (total_frame_num + MAX_BATCH_SIZE -1) // MAX_BATCH_SIZE
+        total_frame_num = len(mouth_frame)
+        MAX_BATCH_SIZE = 32    # suggest to set <=64
+        total_run = (total_frame_num + MAX_BATCH_SIZE -1) // MAX_BATCH_SIZE
 
-    for i in range(total_run):
-        mouth_frame_run = mouth_frame[i*MAX_BATCH_SIZE: (i+1)*MAX_BATCH_SIZE]
-        out_frames = renderModel.interface_batch(mouth_frame_run)
-        for frame in out_frames:
-            videoWriter.write(frame)
+        for i in range(total_run):
+            mouth_frame_run = mouth_frame[i*MAX_BATCH_SIZE: (i+1)*MAX_BATCH_SIZE]
+            out_frames = renderModel.interface_batch(mouth_frame_run)
+            for frame in out_frames:
+                videoWriter.write(frame)
 
-    videoWriter.release()
-    E = time.time()
-    print(f"inference time: {E-S}")
-    val_video = "../output/{}.mp4".format(task_id)
+        videoWriter.release()
+        E = time.time()
+        print(f"inference time: {E-S}")
+    #val_video = "../output/{}.mp4".format(task_id)
     os.system(
         "ffmpeg -i {} -i {} -c:v libx264 -pix_fmt yuv420p -loglevel quiet {}".format(save_path, wavpath, output_video_name))
     shutil.rmtree("output/{}".format(task_id))
