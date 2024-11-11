@@ -68,7 +68,7 @@ def main():
 
         videoWriter.release()
         E = time.time()
-        print(f"inference time: {E-S}")
+        print(f"inference time: {E-S}, total_frame number {total_frame_num}, fps: {total_frame_num/(E-S):.2f}")
     #val_video = "../output/{}.mp4".format(task_id)
     os.system(
         "ffmpeg -i {} -i {} -c:v libx264 -pix_fmt yuv420p -loglevel quiet {}".format(save_path, wavpath, output_video_name))
