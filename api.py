@@ -40,6 +40,7 @@ def dh_convert(wavpath, use_batching=False):
     S = time.time()
 
     if not use_batching:
+        total_frame_num = len(mouth_frame)
         for frame in tqdm.tqdm(mouth_frame):
             out_frame = renderModel.interface(frame)
             # cv2.imshow("s", frame)
@@ -52,14 +53,22 @@ def dh_convert(wavpath, use_batching=False):
         total_run = (total_frame_num + MAX_BATCH_SIZE -1) // MAX_BATCH_SIZE
         for i in range(total_run):
             mouth_frame_run = mouth_frame[i*MAX_BATCH_SIZE: (i+1)*MAX_BATCH_SIZE]
-            out_frames = renderModel.interface_batch(mouth_frame_run)
+            # Here solve the static shape!!!
+            # fallback the <MAX_BATCH_SIZE batch to single infer
+            if len(mouth_frame_run) == MAX_BATCH_SIZE:
+
+                out_frames = renderModel.interface_batch(mouth_frame_run)
+            else:
+                out_frames = []
+                for ii in mouth_frame_run:
+                    out_frames.append(renderModel.interface(ii))
             for frame in out_frames:
                 videoWriter.write(frame)
 
 
     videoWriter.release()
     E = time.time()
-    print(f"inference time: {E-S}")
+    print(f"inference time: {E-S}, total_frame number {total_frame_num}, fps: {total_frame_num/(E-S):.2f}")
     val_video = "../output/{}.mp4".format(task_id)
 
     output_video_path = f"{uuid.uuid4()}.mp4"
