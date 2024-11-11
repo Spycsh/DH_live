@@ -38,6 +38,7 @@ def dh_convert(wavpath, use_batching=False):
     S = time.time()
 
     if not use_batching:
+        total_frame_num = len(mouth_frame)
         for frame in tqdm.tqdm(mouth_frame):
             out_frame = renderModel.interface(frame)
             # cv2.imshow("s", frame)
@@ -57,7 +58,7 @@ def dh_convert(wavpath, use_batching=False):
 
     videoWriter.release()
     E = time.time()
-    print(f"inference time: {E-S}")
+    print(f"inference time: {E-S}, total_frame number {total_frame_num}, fps: {total_frame_num/(E-S):.2f}")
     val_video = "../output/{}.mp4".format(task_id)
 
     output_video_path = f"{uuid.uuid4()}.mp4"
