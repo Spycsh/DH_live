@@ -12,7 +12,6 @@ from scipy.io import wavfile
 import math
 import torch
 import habana_frameworks.torch.core as htcore
-import habana_frameworks.torch.gpu_migration
 
 def main():
     # 检查命令行参数的数量

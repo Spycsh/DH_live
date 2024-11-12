@@ -16,7 +16,6 @@ from fastapi import File, UploadFile, HTTPException
 
 from pydub import AudioSegment
 import habana_frameworks.torch.core as htcore
-import habana_frameworks.torch.gpu_migration
 
 app = FastAPI()
 

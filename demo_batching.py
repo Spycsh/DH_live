@@ -9,7 +9,6 @@ import sys
 from talkingface.audio_model import AudioModel
 from talkingface.render_model import RenderModel
 import habana_frameworks.torch.core as htcore
-import habana_frameworks.torch.gpu_migration
 
 
 def main():
