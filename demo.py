@@ -27,7 +27,9 @@ def main():
     audioModel.loadModel("checkpoint/audio.pkl")
 
     renderModel = RenderModel()
-    renderModel.loadModel("checkpoint/render.pth")
+    # renderModel.loadModel("checkpoint/render.pth")
+    renderModel.loadModel("checkpoint/Dinet_five_ref/epoch_160.pth")
+
     pkl_path = "{}/keypoint_rotate.pkl".format(video_path)
     video_path = "{}/circle.mp4".format(video_path)
     renderModel.reset_charactor(video_path, pkl_path)

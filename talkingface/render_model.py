@@ -35,7 +35,14 @@ class RenderModel:
         ref_channel = n_ref * 6
         self.__net = DINet(source_channel, ref_channel).to(device)
         checkpoint = torch.load(ckpt_path, map_location=torch.device(device))
-        self.__net.load_state_dict(checkpoint)
+        try:
+            self.__net.load_state_dict(checkpoint)
+        except Exception as e:
+            # input: epoch_160.pth
+            net_g_static = checkpoint['state_dict']['net_g']
+            self.__net.load_state_dict(net_g_static)
+
+
         self.__net.eval()
 
     def reset_charactor(self, video_path, Path_pkl, ref_img_index_list = None):
