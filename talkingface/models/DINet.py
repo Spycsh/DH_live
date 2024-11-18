@@ -13,9 +13,14 @@ def make_coordinate_grid_3d(spatial_size, type):
         generate 3D coordinate grid
     '''
     d, h, w = spatial_size
-    x = torch.arange(w).type(type)
-    y = torch.arange(h).type(type)
-    z = torch.arange(d).type(type)
+    if type == 'torch.hpu.FloatTensor':
+        x = torch.arange(w).to('hpu')
+        y = torch.arange(h).to('hpu')
+        z = torch.arange(d).to('hpu')
+    else:
+        x = torch.arange(w).to(type)
+        y = torch.arange(h).to(type)
+        z = torch.arange(d).to(type)
     x = (2 * (x / (w - 1)) - 1)
     y = (2 * (y / (h - 1)) - 1)
     z = (2 * (z / (d - 1)) - 1)
